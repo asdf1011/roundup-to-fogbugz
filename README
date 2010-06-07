@@ -49,7 +49,8 @@ replacing the fogbugz server with the current url.
 Tips
 ====
 
-* It is highly likely that you will have to restart the import several times. To
+* It is highly likely that you will have to restart the import several times
+(for example, if you need to increase the maximum file size in fogbugz). To
 reset fogbugz to a pristine state, run (for mysql);
 
   DROP DATABASE fogbugz;
