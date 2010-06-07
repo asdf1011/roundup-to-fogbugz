@@ -312,14 +312,18 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
             ixbug = response.find('ixBug').text
         cmd = 'edit'
 
-def fogbugz_create_projects(keywords, mapping, default_project, connection):
+def fogbugz_create_projects(keywords, mapping, default_project, users, connection):
     result = Lookup('projects')
     names = {}
     if mapping:
         mapping = [m.split(':') for m in mapping]
         for keyword, project in mapping:
             id = dict((name, id) for id, name in keywords.items())[keyword]
-            result[id] = connection.post('newProject', {'sProject':project}, element='ixProject').text
+            result[id] = connection.post('newProject', {
+                'sProject':project,
+                'ixPersonPrimaryContact':users.get_ixperson(None),
+                },
+                element='project/ixProject').text
             names[project] = result[id]
     if default_project is not None:
         try:
@@ -365,7 +369,7 @@ def main():
 
     # Check the keyword -> project mapping
     project_lookup = fogbugz_create_projects(keyword_lookup, options.map,
-            options.default_project, connection)
+            options.default_project, users, connection)
 
     # Load the issues
     issues = list(load_class(directory, 'issue'))
