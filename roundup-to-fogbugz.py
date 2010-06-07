@@ -329,9 +329,7 @@ def fogbugz_create_projects(keywords, mapping, default_project, users, connectio
         try:
             result.default = names[default_project]
         except KeyError:
-            # There isn't a project named after the default project; create it now.
-            print "There isn't a project named '%s' to use as the default; making it too." % default_project
-            result.default = connection.post('newProject', {'sProject':default_project}, element='ixProject').text
+            sys.exit("There isn't a tag named after the default project!")
     return result
 
 def main():
