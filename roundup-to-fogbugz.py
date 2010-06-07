@@ -179,7 +179,7 @@ class FogbugzConnection:
         content_type, body = self._encode_multipart_formdata(fields, files)
         self.connection.putrequest('POST', selector)
         self.connection.putheader('content-type', content_type)
-        self.connection.putheader('content-length', str(len(body)))
+        self.connection.putheader('content-length', len(body))
         self.connection.endheaders()
         self.connection.send(body)
         return self._get_response()
@@ -203,7 +203,7 @@ class FogbugzConnection:
             L.append(value)
         L.append('--' + boundary + '--')
         L.append('')
-        body = CRLF.join(L)
+        body = CRLF.join(str(l) for l in L)
         content_type = 'multipart/form-data; boundary=%s' % boundary
         return content_type, body
 
@@ -294,7 +294,7 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         # params['ixCategory'] = 
         params['ixPersonAssignedTo'] = users.get_ixperson(issue.assignedto)
         params['ixPersonEditedBy'] = users.get_ixperson(issue.actor)
-        params['dt'] = str(mktime(issue.activity))
+        params['dt'] = mktime(issue.activity)
 
         # Check for new messages
         message_ids = [id for id in issue.messages if id not in existing_messages]
