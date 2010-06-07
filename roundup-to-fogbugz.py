@@ -269,7 +269,7 @@ class FogbugzUsers:
             if user.id == roundupId:
                 self._lookup[user.id] = self._connection.post('newPerson', {
                     'sEmail':user.address,
-                    'sFullname':user.realname + ' - ' + ''.join(string.ascii_letters[random.randint(0, len(string.ascii_letters)-1)] for i in range(0, 5)),
+                    'sFullname':user.realname,
                     'fActive':(1 if not user.is_retired else 0),
                     }, element='person/ixPerson').text
                 return self._lookup[user.id]
