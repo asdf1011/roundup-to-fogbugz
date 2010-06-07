@@ -127,7 +127,6 @@ class FogbugzConnection:
         self._token = self.post('logon', {'email':username, 'password':password}, element='token').text
 
     def _test_post(self, args, files=[]):
-        print 'Posting', args, files
         cmd = args['cmd']
         if cmd == 'logon':
             return '<response><token>%i</token></response>' % random.randint(0, 1000)
@@ -153,7 +152,6 @@ class FogbugzConnection:
         if files:
             args['nFileCount'] = len(files)
         args['cmd'] = cmd
-        print args
         xml = self._post(args, files)
         return self._get_element(xml, element)
 
@@ -277,19 +275,6 @@ class FogbugzUsers:
                 return self._lookup[user.id]
         sys.exit("Failed to find user with id '%s'." % (roundupId))
 
-def fogbugz_user_upload(users, connection):
-    """Upload users to fogbugz.
-
-    Returns a map of {roundup_user_id: ixPerson}"""
-    result = Lookup('users')
-    for user in users:
-        result[user.id] = connection.post('newPerson', {
-            'sEmail':user.address,
-            'sFullname':user.realname,
-            'fActive':(1 if not user.is_retired else 0),
-            }, element='ixPerson').text
-    return result
-
 def fogbugz_issue_upload(issue_history, users, message_lookup,
         keyword_lookup, project_lookup, file_lookup, connection):
     """Upload issue changes to fogbugz."""
@@ -376,7 +361,6 @@ def main():
     keyword_lookup = dict((keyword.id, keyword.name) for keyword in load_class(directory, 'keyword'))
 
     # Upload the projects
-    print 'uploading users...'
     users = FogbugzUsers(roundupUsers, options.default_user, connection)
 
     # Check the keyword -> project mapping
