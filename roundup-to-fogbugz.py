@@ -17,29 +17,7 @@ from xml.etree import ElementTree
 from xml.parsers.expat import ExpatError
 
 doc = '''%s [options] <roundup export directory>
-Import a roundup issue archive into a fogbugz database.
-
-This program will;
-* Import all roundup users.
-* Import the history for all issues, including;
-   - Title
-   - Messages
-   - Priority
-   - Status
-   - Assigned to
-   - Keywords
-   - Attachments
-* Can optionally allow mapping of keywords to projects (in which case it will
-  create those projects, assign the bug to the project, and remove the
-  keyword from the tags).
-* Attempt to keep the same issue numbers.
-
-It will not;
-* Import passwords.
-* Keep the nosy list (this wasn't required for us, but it'll be easy to add).
-* Remove messages from issues (supported by roundup, but not by fogbugz).
-* Import non-default classes (should be easy to customise though).''' % sys.argv[0]
-
+Import a roundup issue archive into a fogbugz database.''' % sys.argv[0]
 
 def load_class(dir, name):
     """Load the current state of a class from the issues csv.
@@ -268,7 +246,6 @@ class FogbugzUsers:
         self._users = users
         self._lookup = {}
 
-        # Set all unassigned issues to the requested user
         self._default_user_id = None
         if defaultUserName:
             for user in users:
@@ -276,7 +253,7 @@ class FogbugzUsers:
                     self._default_user_id = user.id
                     break
             else:
-                sys.exit("Unable to find user name '%s' to be unassigned user!" % options.unassigned_user)
+                sys.exit("Unable to find user name '%s' to be default user!" % defaultUserName)
 
     def get_ixperson(self, roundupId):
         if roundupId is None:
@@ -287,9 +264,9 @@ class FogbugzUsers:
         try:
             return self._lookup[roundupId]
         except KeyError:
-            # We haven't asked for this user yet...
             pass
 
+        # We haven't create for this user yet... do so now.
         for user in self._users:
             if user.id == roundupId:
                 self._lookup[user.id] = self._connection.post('newPerson', {
@@ -381,7 +358,7 @@ def main():
             "specified the issues will be printed to stdout, and not imported "
             "to fogbugz. If the username and password is not specified, the "
             "user will be prompted to enter it.", metavar="ADDRESS")
-    parser.add_option('--unassigned-user', help="Set the roundup user who will be "
+    parser.add_option('--default-user', help="Set the roundup user who will be "
             "set as the owner of all unassigned bugs (as fogbugz requires a user "
             "for all bugs).", metavar="REAL_NAME")
     options, args = parser.parse_args()
@@ -400,7 +377,7 @@ def main():
 
     # Upload the projects
     print 'uploading users...'
-    users = FogbugzUsers(roundupUsers, options.unassigned_user, connection)
+    users = FogbugzUsers(roundupUsers, options.default_user, connection)
 
     # Check the keyword -> project mapping
     project_lookup = fogbugz_create_projects(keyword_lookup, options.map,

@@ -1,0 +1,46 @@
+
+Convert a roundup issue database to a fogbugz database
+======================================================
+
+This program will;
+
+* Import all roundup users.
+* Import the history for all issues, including;
+   - Title
+   - Messages
+   - Priority
+   - Status
+   - Assigned to
+   - Keywords
+   - Attachments
+* Can optionally allow mapping of keywords to projects (in which case it will
+  create those projects, assign the bug to the project, and remove the
+  keyword from the tags).
+* Attempt to keep the same issue numbers.
+
+It will not;
+
+* Import passwords.
+* Keep the nosy list (this wasn't required for us, but it'll be easy to add).
+* Remove messages from issues (supported by roundup, but not by fogbugz).
+* Import non-default classes (should be easy to customise though).
+
+
+Instructions
+============
+
+Export the roundup database using roundup-admin. eg:
+
+  roundup-admin export export_dir/
+
+Then use roundup-to-fogbugz.py tool to test the conversion;
+
+  ./roundup-to-fogbugz --default-project=ProjectA --map projecta:ProjectA --map projectb:ProjectB --default-user=usera ./export_dir
+
+This will not import into fogbugz, but it will scan the history of the issue
+tracker and check it for sanity. When this has run without error, and you'd
+like to import it into fogbugz, run
+
+  ./roundup-to-fogbugz --default-project=ProjectA --map projecta:ProjectA --map projectb:ProjectB --default-user=usera --fogbugz-server=http://localhost:1234/bugs/api.xml ./export_dir
+
+replacing the fogbugz server with the current url.
