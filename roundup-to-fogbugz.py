@@ -278,7 +278,6 @@ class FogbugzUsers:
 def fogbugz_issue_upload(issue_history, users, message_lookup,
         keyword_lookup, project_lookup, file_lookup, connection):
     """Upload issue changes to fogbugz."""
-    cmd = 'new'
     ixbug = None
     params = {}
     existing_messages = []
@@ -286,7 +285,10 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
     for issue in issue_history:
         project_id, tags = get_tags(issue.keyword, keyword_lookup, project_lookup)
 
-        if ixbug is not None:
+        if ixbug is None:
+            cmd = 'new'
+        else:
+            cmd = 'edit'
             params['ixBug'] = ixbug
         params['sTags'] = ','.join(tags)
         params['sTitle'] = issue.title
@@ -310,7 +312,6 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         response = connection.post(cmd, params, files, 'case')
         if ixbug is None:
             ixbug = response.attrib['ixBug']
-        cmd = 'edit'
 
 def fogbugz_create_projects(keywords, mapping, default_project, users, connection):
     result = Lookup('projects')
