@@ -231,7 +231,7 @@ def get_tags(keywords, keyword_lookup, project_lookup):
         try:
             project = project_lookup[keyword]
         except KeyError:
-            tags.append(keyword_lookup[keyword])
+            tags.append(keyword_lookup[keyword].replace(' ', '-'))
     if project is None:
         # There wasn't a tag that identified a project, so use the default.
         project = project_lookup[None]
