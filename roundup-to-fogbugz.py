@@ -131,13 +131,13 @@ class FogbugzConnection:
         if cmd == 'logon':
             return '<response><token>%i</token></response>' % random.randint(0, 1000)
         elif cmd == 'newProject':
-            return '<response><ixProject>%i</ixProject></response>' % random.randint(0, 1000)
+            return '<response><project><ixProject>%i</ixProject></project></response>' % random.randint(0, 1000)
         elif cmd == 'newPerson':
-            return '<response><ixPerson>%i</ixPerson></response>' % random.randint(0, 1000)
+            return '<response><person><ixPerson>%i</ixPerson></person></response>' % random.randint(0, 1000)
         elif cmd == 'new':
-            return '<response><ixBug>%i</ixBug></response>' % random.randint(0, 1000)
+            return '<response><case ixBug="%i" /></response>' % random.randint(0, 1000)
         elif cmd == 'edit':
-            return '<response/>'
+            return '<response><case ixBug="1234" /></response>'
         else:
             raise Exception('%s not handled in test...' % cmd)
 
@@ -271,7 +271,7 @@ class FogbugzUsers:
                     'sEmail':user.address,
                     'sFullname':user.realname,
                     'fActive':(1 if not user.is_retired else 0),
-                    }, element='ixPerson').text
+                    }, element='person/ixPerson').text
                 return self._lookup[user.id]
         sys.exit("Failed to find user with id '%s'." % (roundupId))
 
@@ -307,9 +307,9 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         # Check for new files
         files = [file_lookup[id] for id in issue.files if id not in existing_files]
         existing_files += [id for id in issue.files]
-        response = connection.post(cmd, params, files)
+        response = connection.post(cmd, params, files, 'case')
         if ixbug is None:
-            ixbug = response.find('ixBug').text
+            ixbug = response.attrib['ixBug']
         cmd = 'edit'
 
 def fogbugz_create_projects(keywords, mapping, default_project, users, connection):
