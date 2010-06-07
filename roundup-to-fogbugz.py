@@ -301,7 +301,10 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         params['sTitle'] = issue.title
         params['ixProject'] = project_id
         # params['ixCategory'] = 
-        params['ixPersonAssignedTo'] = users.get_ixperson(issue.assignedto)
+        if issue.assignedto is None:
+            params['ixPersonAssignedTo'] = users.get_ixperson(issue.creator)
+        else:
+            params['ixPersonAssignedTo'] = users.get_ixperson(issue.assignedto)
         params['ixPersonEditedBy'] = users.get_ixperson(issue.actor)
         params['dt'] = mktime(issue.activity)
 
@@ -359,8 +362,7 @@ def main():
             "to fogbugz. If the username and password is not specified, the "
             "user will be prompted to enter it.", metavar="ADDRESS")
     parser.add_option('--default-user', help="Set the roundup user who will be "
-            "set as the owner of all unassigned bugs (as fogbugz requires a user "
-            "for all bugs).", metavar="REAL_NAME")
+            "set as the owner of all projects.", metavar="REAL_NAME")
     options, args = parser.parse_args()
     if len(args) != 1:
         sys.exit("Missing roundup export directory argument! See '%s -h' for more info." % sys.argv[0])
