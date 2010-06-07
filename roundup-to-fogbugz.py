@@ -136,7 +136,7 @@ class FogbugzConnection:
             return '<response><person><ixPerson>%i</ixPerson></person></response>' % random.randint(0, 1000)
         elif cmd == 'new':
             return '<response><case ixBug="%i" /></response>' % random.randint(0, 1000)
-        elif cmd == 'edit':
+        elif cmd in ['edit', 'close', 'resolve']:
             return '<response><case ixBug="1234" /></response>'
         else:
             raise Exception('%s not handled in test...' % cmd)
@@ -269,14 +269,15 @@ class FogbugzUsers:
             if user.id == roundupId:
                 self._lookup[user.id] = self._connection.post('newPerson', {
                     'sEmail':user.address,
-                    'sFullname':user.realname,
+                    'sFullname':user.realname + ' - ' + ''.join(string.ascii_letters[random.randint(0, len(string.ascii_letters)-1)] for i in range(0, 5)),
                     'fActive':(1 if not user.is_retired else 0),
                     }, element='person/ixPerson').text
                 return self._lookup[user.id]
         sys.exit("Failed to find user with id '%s'." % (roundupId))
 
 def fogbugz_issue_upload(issue_history, users, message_lookup,
-        keyword_lookup, project_lookup, file_lookup, connection):
+        keyword_lookup, project_lookup, file_lookup, status_lookup,
+        connection):
     """Upload issue changes to fogbugz."""
     ixbug = None
     params = {}
@@ -288,8 +289,14 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         if ixbug is None:
             cmd = 'new'
         else:
-            cmd = 'edit'
             params['ixBug'] = ixbug
+            if issue.status is None or status_lookup[issue.status] == 'resolved':
+                cmd = 'resolve'
+            elif cmd == 'resolve':
+                cmd = 'reactivate'
+            else:
+                cmd = 'edit'
+
         params['sTags'] = ','.join(tags)
         params['sTitle'] = issue.title
         params['ixProject'] = project_id
@@ -312,6 +319,11 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         response = connection.post(cmd, params, files, 'case')
         if ixbug is None:
             ixbug = response.attrib['ixBug']
+
+    if cmd == 'resolve':
+        # If the final status is resolved, assume it has been fixed
+        connection.post('close', {'ixBug':ixbug})
+
 
 def fogbugz_create_projects(keywords, mapping, default_project, users, connection):
     result = Lookup('projects')
@@ -374,6 +386,7 @@ def main():
     issues = list(load_class(directory, 'issue'))
     issues.sort(key=lambda i: int(i.id))
     journal = load_journal(directory, 'issue')
+    status_lookup = dict((s.id, s.name) for s in load_class(directory, 'status'))
 
     # Load the files
     file_lookup = dict((file.id, (file.name,
@@ -385,7 +398,8 @@ def main():
         changes = list(history(issue, journal))
         changes.reverse()
         fogbugz_issue_upload(changes, users, message_lookup,
-                keyword_lookup, project_lookup, file_lookup, connection)
+                keyword_lookup, project_lookup, file_lookup, status_lookup,
+                connection)
 
 if __name__ == '__main__':
     main()
