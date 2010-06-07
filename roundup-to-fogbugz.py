@@ -280,12 +280,12 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         connection):
     """Upload issue changes to fogbugz."""
     ixbug = None
-    params = {}
     existing_messages = []
     existing_files = []
     for issue in issue_history:
         project_id, tags = get_tags(issue.keyword, keyword_lookup, project_lookup)
 
+        params = {}
         if ixbug is None:
             cmd = 'new'
         else:
