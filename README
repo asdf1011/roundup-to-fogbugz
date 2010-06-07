@@ -44,3 +44,18 @@ like to import it into fogbugz, run
   ./roundup-to-fogbugz --default-project=ProjectA --map projecta:ProjectA --map projectb:ProjectB --default-user=usera --fogbugz-server=http://localhost:1234/bugs/api.xml ./export_dir
 
 replacing the fogbugz server with the current url.
+
+
+Tips
+====
+
+* It is highly likely that you will have to restart the import several times. To
+reset fogbugz to a pristine state, run (for mysql);
+
+  DROP DATABASE fogbugz;
+  CREATE DATABASE fogbugz;
+  use fogbugz;
+  create table Version (ixVersion int);
+  insert into Version values (0);
+
+Then load the web interface to let it re-run the installation.
