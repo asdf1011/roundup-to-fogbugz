@@ -210,7 +210,11 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
 
         # Check for new files
         files = [file_lookup[id] for id in issue.files if id not in existing_files]
-        existing_files += [id for id in issue.files]
+        removed_attachments = [id for id in existing_files if id not in issue.files]
+        if removed_attachments:
+            print "Note: not removing attachment %s from %s as this isn't " \
+                "supported by the fogbugz api." % (removed_attachments, issue)
+        existing_files = [id for id in issue.files]
         response = connection.post(cmd, params, files, 'case')
         if ixbug is None:
             ixbug = response.attrib['ixBug']
