@@ -317,7 +317,7 @@ def main():
             assert int(issue.id) == i, 'Expected issue with id %i, got %s' % (i, issue.id)
             i = int(issue.id) + 1
 
-        print 'uploading issue %s...' % issue.id
+        print 'uploading issue %s of %s...' % (issue.id, issues[-1].id)
         changes = list(history(issue, journal))
         changes.reverse()
         fogbugz_issue_upload(changes, users, message_lookup,
