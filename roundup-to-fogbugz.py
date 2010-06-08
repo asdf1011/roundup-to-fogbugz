@@ -3,15 +3,11 @@
 from collections import namedtuple
 import csv
 import datetime
-import httplib
 import getpass
 from optparse import OptionParser
 import os.path
 import random
-import string
 import sys
-import urllib
-import urlparse
 
 from fogbugz import FogbugzConnection
 

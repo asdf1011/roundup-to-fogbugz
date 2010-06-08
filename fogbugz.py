@@ -1,5 +1,10 @@
+
+import httplib
 import random
+import string
 from StringIO import StringIO
+import urllib
+import urlparse
 from xml.etree import ElementTree
 from xml.parsers.expat import ExpatError
 
@@ -45,7 +50,7 @@ class FogbugzConnection:
             return '<response><person><ixPerson>%i</ixPerson></person></response>' % random.randint(0, 1000)
         elif cmd == 'new':
             return '<response><case ixBug="%i" /></response>' % random.randint(0, 1000)
-        elif cmd in ['edit', 'close', 'resolve']:
+        elif cmd in ['edit', 'close', 'resolve', 'reactivate']:
             return '<response><case ixBug="1234" /></response>'
         else:
             raise Exception('%s not handled in test...' % cmd)
