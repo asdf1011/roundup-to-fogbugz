@@ -348,6 +348,17 @@ def fogbugz_create_projects(keywords, mapping, default_project, users, connectio
             sys.exit("There isn't a tag named after the default project!")
     return result
 
+def _create_placeholder_bug(project_lookup, users, connection):
+    """Create an closed placeholder bug to remove the missing bug id."""
+    params = {
+            'ixProject': project_lookup[None],
+            'ixPersonAssignedTo': users.get_ixperson(None),
+            'sTitle': 'Placeholder bug to take into account a missing roundup bug id.',
+            }
+    params['ixBug'] = connection.post('new', params, [], 'case').attrib['ixBug']
+    connection.post('resolve', params, [])
+    connection.post('close', params, [])
+
 def main():
     parser = OptionParser(usage=doc)
     parser.add_option('--map' ,help="Map a roundup keyword to a project name. " \
@@ -363,6 +374,10 @@ def main():
             "user will be prompted to enter it.", metavar="ADDRESS")
     parser.add_option('--default-user', help="Set the roundup user who will be "
             "set as the owner of all projects.", metavar="REAL_NAME")
+    parser.add_option('--disable-placeholder-bugs', help="By default the tool will "
+            "create placeholder issues to keep the roundup to fogbugz ids "
+            "syncronised. This flag will disable the creation of placeholder issues.",
+            action='store_true')
     options, args = parser.parse_args()
     if len(args) != 1:
         sys.exit("Missing roundup export directory argument! See '%s -h' for more info." % sys.argv[0])
@@ -395,7 +410,16 @@ def main():
         os.path.join(directory, 'file-files', '0', 'file%s' % file.id)))
         for file in load_class(directory, 'file'))
 
+    i = 1
     for issue in issues:
+        if not options.disable_placeholder_bugs:
+            while int(issue.id) > i:
+                print 'Creating dummy bug to skip issue %i...' % i
+                _create_placeholder_bug(project_lookup, users, connection)
+                i += 1
+            assert int(issue.id) == i, 'Expected issue with id %i, got %s' % (i, issue.id)
+            i = int(issue.id) + 1
+
         print 'uploading issue %s...' % issue.id
         changes = list(history(issue, journal))
         changes.reverse()

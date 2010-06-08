@@ -16,7 +16,8 @@ This program will;
 * Can optionally allow mapping of keywords to projects (in which case it will
   create those projects, assign the bug to the project, and remove the
   keyword from the tags).
-* Attempt to keep the same issue numbers.
+* Will attempt to keep the same issue numbers (so external links to bug ids
+  remain valid).
 
 It will not;
 
