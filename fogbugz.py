@@ -3,6 +3,7 @@ import httplib
 import random
 import string
 from StringIO import StringIO
+import sys
 import urllib
 import urlparse
 from xml.etree import ElementTree
