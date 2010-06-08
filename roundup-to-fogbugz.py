@@ -277,8 +277,16 @@ class FogbugzUsers:
 
 def fogbugz_issue_upload(issue_history, users, message_lookup,
         keyword_lookup, project_lookup, file_lookup, status_lookup,
-        connection):
+        priority_lookup, connection):
     """Upload issue changes to fogbugz."""
+    roundup_priority = dict((name, id) for (id, name) in priority_lookup.items())
+    fogbugz_priority = {
+            'critical' : 1,
+            'urgent' : 2,
+            'bug' : 3,
+            'feature' : 4,
+            'wish' : 5,
+            }
     ixbug = None
     existing_messages = []
     existing_files = []
@@ -307,6 +315,7 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
             params['ixPersonAssignedTo'] = users.get_ixperson(issue.assignedto)
         params['ixPersonEditedBy'] = users.get_ixperson(issue.actor)
         params['dt'] = mktime(issue.activity)
+        params['ixPriority'] = fogbugz_priority[priority_lookup[issue.priority]]
 
         # Check for new messages
         message_ids = [id for id in issue.messages if id not in existing_messages]
@@ -404,6 +413,7 @@ def main():
     issues.sort(key=lambda i: int(i.id))
     journal = load_journal(directory, 'issue')
     status_lookup = dict((s.id, s.name) for s in load_class(directory, 'status'))
+    priority_lookup = dict((p.id, p.name) for p in load_class(directory, 'priority'))
 
     # Load the files
     file_lookup = dict((file.id, (file.name,
@@ -425,7 +435,7 @@ def main():
         changes.reverse()
         fogbugz_issue_upload(changes, users, message_lookup,
                 keyword_lookup, project_lookup, file_lookup, status_lookup,
-                connection)
+                priority_lookup, connection)
 
 if __name__ == '__main__':
     main()
