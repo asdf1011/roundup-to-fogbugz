@@ -42,7 +42,7 @@ This will not import into fogbugz, but it will scan the history of the issue
 tracker and check it for sanity. When this has run without error, and you'd
 like to import it into fogbugz, run
 
-  ./roundup-to-fogbugz --default-project=ProjectA --map projecta:ProjectA --map projectb:ProjectB --default-user=usera --fogbugz-server=http://localhost:1234/bugs/api.xml ./export_dir
+  ./roundup-to-fogbugz --default-project=ProjectA --map projecta:ProjectA --map projectb:ProjectB --default-user=usera --fogbugz-server=http://localhost:1234/bugs/ ./export_dir
 
 replacing the fogbugz server with the current url.
 

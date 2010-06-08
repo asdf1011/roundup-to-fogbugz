@@ -29,7 +29,7 @@ class FogbugzConnection:
                 sys.exit("Unknown server scheme '%s'!" % server.scheme)
 
             # Request the 'live' url
-            self.connection.request('GET', server.path)
+            self.connection.request('GET', server.path + '/api.xml')
             self._http_path = '/%s' % self._get_element(self._get_response(), 'url').text
 
         self._token = None

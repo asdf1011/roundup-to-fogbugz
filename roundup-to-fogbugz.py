@@ -264,7 +264,7 @@ def main():
     parser.add_option('--default-project', help="Set the default project for all "
             "issues that don't have a keyword specified in '--map'.", metavar="PROJECT")
     parser.add_option('--fogbugz-server', help="Set the fogbugz server. eg: "
-            "'http://username:password@127.0.0.1:7006/fogbugz/api.xml'. If not "
+            "'http://username:password@127.0.0.1:7006/fogbugz/'. If not "
             "specified the issues will be printed to stdout, and not imported "
             "to fogbugz. If the username and password is not specified, the "
             "user will be prompted to enter it.", metavar="ADDRESS")
