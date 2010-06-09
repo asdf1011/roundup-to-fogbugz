@@ -16,6 +16,7 @@ class FogbugzConnection:
             # Override the post with a test implementation.
             print 'IMPORTANT: Fogbugz server not specifed! Printing issues to stdout.'
             self._post = self._test_post
+            self._root_path = 'test://server/'
             username = None
             password = None
         else:
@@ -35,7 +36,8 @@ class FogbugzConnection:
                 sys.exit("Unknown server scheme '%s'!" % server.scheme)
 
             # Request the 'live' url
-            self.connection.request('GET', server.path + '/api.xml')
+            self._root_path = server.path
+            self.connection.request('GET', self._root_path + '/api.xml')
             self._http_path = '/%s' % self._get_element(self._get_response(), 'url').text
 
         self._token = None
@@ -59,9 +61,16 @@ class FogbugzConnection:
     def _post(self, args, files):
         """Post a request to the fogbugz server."""
         return self._post_multipart("POST", self._http_path, args.items(),
-                [('File%i' % (i+1), name, open(path, 'r').read()) for i, (name, path) in enumerate(files)])
+                [('File%i' % (i+1), name, contents) for i, (name, contents) in enumerate(files)])
 
     def post(self, cmd, args, files=[], element=None):
+        """Post a single change to fogbugz.
+
+        cmd -- The command to run (eg: edit, close, reopen, ...).
+        files -- A list of (filename, contents) tuples.
+        element -- An xml selector to return.
+        return -- An ElementTree instance for the FogBugz result. 
+        """
         if self._token is not None:
             args['token'] = self._token
         if files:
@@ -69,6 +78,16 @@ class FogbugzConnection:
         args['cmd'] = cmd
         xml = self._post(args, files)
         return self._get_element(xml, element)
+
+    def get_attachment(self, path):
+        url = self._root_path + path + '&token=' + self._token
+        print 'Asking for attachment at', url
+        if self._post is not self._test_post:
+            self.connection.request('GET', url)
+            return self._get_response()
+        else:
+            print 'Asked for attachment %s' % url
+            return ''
 
     def _get_element(self, xml, element):
         try:

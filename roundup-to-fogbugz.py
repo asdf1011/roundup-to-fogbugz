@@ -209,7 +209,8 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
         existing_messages += message_ids
 
         # Check for new files
-        files = [file_lookup[id] for id in issue.files if id not in existing_files]
+        files = [(file_lookup[id][0], open(file_lookup[id][1], 'r').read())
+                for id in issue.files if id not in existing_files]
         removed_attachments = [id for id in existing_files if id not in issue.files]
         if removed_attachments:
             print "Note: not removing attachment %s from %s as this isn't " \
