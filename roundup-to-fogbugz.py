@@ -231,7 +231,11 @@ def fogbugz_create_projects(keywords, mapping, default_project, users, connectio
     if mapping:
         mapping = [m.split(':') for m in mapping]
         for keyword, project in mapping:
-            id = dict((name, id) for id, name in keywords.items())[keyword]
+            try:
+                id = dict((name, id) for id, name in keywords.items())[keyword]
+            except KeyError:
+                sys.exit("Unknown keyword '%s' used for project mapping! Keywords are:\n%s" %
+                        (keyword, ', '.join(keywords.values())))
             result[id] = connection.post('newProject', {
                 'sProject':project,
                 'ixPersonPrimaryContact':users.get_ixperson(None),
@@ -242,7 +246,7 @@ def fogbugz_create_projects(keywords, mapping, default_project, users, connectio
         try:
             result.default = names[default_project]
         except KeyError:
-            sys.exit("There isn't a tag named after the default project!")
+            sys.exit("There isn't a tag named after the default project! Projects are:\n%s" % ', '.join(names.keys()))
     return result
 
 def _create_placeholder_bug(project_lookup, users, connection):
