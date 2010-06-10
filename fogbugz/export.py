@@ -250,7 +250,7 @@ def _changes(issue, events):
 
     yield issue
 
-def get_changes(source, search):
+def get_issues(source, search):
     columns = ['sProject', 'sTitle', 'ixPriority', 'ixBugParent', 'sStatus', 'sCategory', 'ixPersonAssignedTo', 'ixBug']
     params = {'cols':','.join(columns + ['tags','events'])}
     if search:

@@ -154,10 +154,14 @@ class Connection(BaseConnection):
 
 
 class MockConnection(BaseConnection):
-    def __init__(self, name=None):
+    def __init__(self, name=None, search=None):
         logging.info('IMPORTANT: Fogbugz server not specifed! Printing issues to stdout.')
+        self._search = search
         BaseConnection.__init__(self, urlparse.urlparse('test://username:password@server/'), name)
         self.logon()
+
+    def _search(self):
+        raise NotImplementedError()
 
     def _post(self, args, files=[]):
         cmd = args['cmd']
@@ -175,6 +179,8 @@ class MockConnection(BaseConnection):
             return '<response />'
         elif cmd == 'listProjects':
             return '<response />'
+        elif cmd == 'search':
+            return self._search or '<response/>'
         else:
             raise Exception('%s not handled in test...' % cmd)
 

@@ -5,7 +5,7 @@ from optparse import OptionParser
 import sys
 
 from fogbugz.connection import Connection, MockConnection
-from fogbugz.export import get_changes, ExportError, Users, Projects
+from fogbugz.export import get_issues, ExportError, Users, Projects
 
 doc = '''%s [options] <source_url> [dest_url]
 Migrate from a fogbugz database to another fogbugz database.
@@ -22,7 +22,7 @@ to be performed to stdout.
 
 def _get_commands(source, users, projects, search):
     """Returns a list of (cmd, params, files) tuples."""
-    for issue in get_changes(source, search):
+    for issue in get_issues(source, search):
         cmd = None
         issue.reverse()
         for change in issue:
