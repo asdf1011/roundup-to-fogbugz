@@ -4,7 +4,7 @@ import logging
 from optparse import OptionParser
 import sys
 
-from fogbugz.connection import Connection
+from fogbugz.connection import Connection, MockConnection
 from fogbugz.export import get_changes, ExportError, Users, Projects
 
 doc = '''%s [options] <source_url> [dest_url]
@@ -90,7 +90,7 @@ def main():
     if len(args) == 0:
         sys.exit("Missing source url. See '%s -h' for more info." % sys.argv[0])
     elif len(args) == 1:
-        dest = Connection(name='destination')
+        dest = MockConnection(name='destination')
     elif len(args) == 2:
         dest = Connection(args[1], name='destination')
     elif len(args) > 2:

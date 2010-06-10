@@ -11,69 +11,18 @@ import urlparse
 from xml.etree import ElementTree
 from xml.parsers.expat import ExpatError
 
-class Connection:
-    def __init__(self, hostaddress=None, name=None):
-        self._connection = None
-        self._host_address = hostaddress
-        self._username = None
-        self._password = None
+class BaseConnection:
+    def __init__(self, server, name=None):
+        self._server = server
         self._name = name or 'fogbugz'
-        if hostaddress is None:
-            # Override the post with a test implementation.
-            logging.info('IMPORTANT: Fogbugz server not specifed! Printing issues to stdout.')
-            self._post = self._test_post
-            self._root_path = 'test://server/'
-            self._server = None
-        else:
-            self._server = urlparse.urlparse(hostaddress)
-            self._username = self._server.username
-            self._password = self._server.password
-            while not self._username:
-                self._username = raw_input('Fogbugz username: ')
-            while not self._password:
-                self._password = getpass.getpass('Enter Fogbugz admin password:')
-        self._reconnect()
 
-    def _reconnect(self):
-        if self._server is not None:
-            if not self._server.scheme or self._server.scheme == 'http':
-                self.connection = httplib.HTTPConnection(self._server.hostname, self._server.port)
-            elif self._server.scheme == 'https':
-                self.connection = httplib.HTTPSConnection(self._server.hostname, self._server.port)
-            else:
-                sys.exit("Unknown server scheme '%s'!" % self._server.scheme)
-
-            # Request the 'live' url
-            self._root_path = self._server.path
-            self.connection.request('GET', self._root_path + '/api.xml')
-            self._http_path = '/%s' % self._get_element(self._get_response(), 'url').text
-
+    def logon(self):
         self._token = None
-        self._token = self.post('logon', {'email':self._username, 'password':self._password}, element='token').text
-
-    def _test_post(self, args, files=[]):
-        cmd = args['cmd']
-        if cmd == 'logon':
-            return '<response><token>%i</token></response>' % random.randint(0, 1000)
-        elif cmd == 'newProject':
-            return '<response><project><ixProject>%i</ixProject></project></response>' % random.randint(0, 1000)
-        elif cmd == 'newPerson':
-            return '<response><person><ixPerson>%i</ixPerson></person></response>' % random.randint(0, 1000)
-        elif cmd == 'new':
-            return '<response><case ixBug="%i" /></response>' % random.randint(0, 1000)
-        elif cmd in ['edit', 'close', 'resolve', 'reactivate']:
-            return '<response><case ixBug="1234" /></response>'
-        elif cmd == 'listPeople':
-            return '<response />'
-        elif cmd == 'listProjects':
-            return '<response />'
-        else:
-            raise Exception('%s not handled in test...' % cmd)
+        self._token = self.post('logon', {'email':self._server.username, 'password':self._server.password}, element='token').text
 
     def _post(self, args, files):
         """Post a request to the fogbugz server."""
-        return self._post_multipart("POST", self._http_path, args.items(),
-                [('File%i' % (i+1), name, contents) for i, (name, contents) in enumerate(files)])
+        raise NotImplementedError()
 
     def post(self, cmd, args, files=[], element=None):
         """Post a single change to fogbugz.
@@ -97,14 +46,13 @@ class Connection:
         xml = self._post(args, files)
         return self._get_element(xml, element)
 
+    def _get_attachment(self, url):
+        raise NotImplementedError()
+
     def get_attachment(self, path):
-        url = self._root_path + path + '&token=' + self._token
+        url = self._server.path + path + '&token=' + self._token
         logging.info('Asking for attachment at %s', url)
-        if self._post is not self._test_post:
-            self.connection.request('GET', url)
-            return self._get_response()
-        else:
-            return ''
+        return self._get_attachment(url)
 
     def _get_element(self, xml, element):
         try:
@@ -120,11 +68,43 @@ class Connection:
                 sys.exit("Failed to find element '%s' in:\n%s" % (element, xml))
         return tree;
 
-    def _get_response(self):
-        response = self.connection.getresponse()
-        if response.status != 200:
-            sys.exit('Fogbugz server failure %i: %s' % (response.status, response.reason))
-        return response.read()
+
+class Connection(BaseConnection):
+    def __init__(self, hostaddress, name=None):
+        self._connection = None
+        self._username = None
+        self._password = None
+
+        server = urlparse.urlparse(hostaddress)
+        while not server.username:
+            server.username = raw_input('Fogbugz username: ')
+        while not server.password:
+            server.password = getpass.getpass('Enter Fogbugz admin password:')
+
+        BaseConnection.__init__(self, server, name)
+        self._reconnect()
+
+    def _reconnect(self):
+        if self._server is not None:
+            if not self._server.scheme or self._server.scheme == 'http':
+                self.connection = httplib.HTTPConnection(self._server.hostname, self._server.port)
+            elif self._server.scheme == 'https':
+                self.connection = httplib.HTTPSConnection(self._server.hostname, self._server.port)
+            else:
+                sys.exit("Unknown server scheme '%s'!" % self._server.scheme)
+
+            # Request the 'live' url
+            self.connection.request('GET', self._server.path + '/api.xml')
+            self._http_path = '/%s' % self._get_element(self._get_response(), 'url').text
+        self.logon()
+
+    def _post(self, args, files):
+        return self._post_multipart("POST", self._http_path, args.items(),
+                [('File%i' % (i+1), name, contents) for i, (name, contents) in enumerate(files)])
+               
+    def _get_attachment(self, url):
+        self.connection.request('GET', url)
+        return self._get_response()
 
     def _post_multipart(self, host, selector, fields, files):
         content_type, body = self._encode_multipart_formdata(fields, files)
@@ -165,4 +145,36 @@ class Connection:
         body = CRLF.join(str(l) for l in L)
         content_type = 'multipart/form-data; boundary=%s' % boundary
         return content_type, body
+
+    def _get_response(self):
+        response = self.connection.getresponse()
+        if response.status != 200:
+            sys.exit('Fogbugz server failure %i: %s' % (response.status, response.reason))
+        return response.read()
+
+
+class MockConnection(BaseConnection):
+    def __init__(self, name=None):
+        logging.info('IMPORTANT: Fogbugz server not specifed! Printing issues to stdout.')
+        BaseConnection.__init__(self, urlparse.urlparse('test://username:password@server/'), name)
+        self.logon()
+
+    def _post(self, args, files=[]):
+        cmd = args['cmd']
+        if cmd == 'logon':
+            return '<response><token>%i</token></response>' % random.randint(0, 1000)
+        elif cmd == 'newProject':
+            return '<response><project><ixProject>%i</ixProject></project></response>' % random.randint(0, 1000)
+        elif cmd == 'newPerson':
+            return '<response><person><ixPerson>%i</ixPerson></person></response>' % random.randint(0, 1000)
+        elif cmd == 'new':
+            return '<response><case ixBug="%i" /></response>' % random.randint(0, 1000)
+        elif cmd in ['edit', 'close', 'resolve', 'reactivate']:
+            return '<response><case ixBug="1234" /></response>'
+        elif cmd == 'listPeople':
+            return '<response />'
+        elif cmd == 'listProjects':
+            return '<response />'
+        else:
+            raise Exception('%s not handled in test...' % cmd)
 

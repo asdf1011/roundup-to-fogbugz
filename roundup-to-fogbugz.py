@@ -10,7 +10,7 @@ import os.path
 import random
 import sys
 
-from fogbugz.connection import Connection
+from fogbugz.connection import Connection, MockConnection
 
 doc = '''%s [options] <roundup export directory>
 Import a roundup issue archive into a fogbugz database.''' % sys.argv[0]
@@ -287,7 +287,10 @@ def main():
         sys.exit("Missing roundup export directory argument! See '%s -h' for more info." % sys.argv[0])
     directory = args[0]
 
-    connection = Connection(options.fogbugz_server)
+    if options.fogbugz_server:
+        connection = Connection(options.fogbugz_server)
+    else:
+        connection = MockConnection()
 
     # Load the support classes
     roundupUsers = list(load_class(directory, 'user'))
