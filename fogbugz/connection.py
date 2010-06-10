@@ -11,7 +11,7 @@ import urlparse
 from xml.etree import ElementTree
 from xml.parsers.expat import ExpatError
 
-class FogbugzConnection:
+class Connection:
     def __init__(self, hostaddress=None, name=None):
         self._connection = None
         self._host_address = hostaddress

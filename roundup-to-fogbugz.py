@@ -4,12 +4,13 @@ from collections import namedtuple
 import csv
 import datetime
 import getpass
+import logging
 from optparse import OptionParser
 import os.path
 import random
 import sys
 
-from fogbugz import FogbugzConnection
+from fogbugz.connection import Connection
 
 doc = '''%s [options] <roundup export directory>
 Import a roundup issue archive into a fogbugz database.''' % sys.argv[0]
@@ -286,7 +287,7 @@ def main():
         sys.exit("Missing roundup export directory argument! See '%s -h' for more info." % sys.argv[0])
     directory = args[0]
 
-    connection = FogbugzConnection(options.fogbugz_server)
+    connection = Connection(options.fogbugz_server)
 
     # Load the support classes
     roundupUsers = list(load_class(directory, 'user'))
