@@ -150,11 +150,12 @@ def _dict_from_element(case, names):
     return result
 
 def _tag_handler(issue, action, tags):
-    # eg: Added tags 'console', 'oddsline'
     if action == 'Added tag':
-        issue['tags'].union(t[1:-1] for t in tags.split(', '))
-    elif action == 'Removed tag':
+        # We need to remove the added tags
         issue['tags'] -= set(t[1:-1] for t in tags.split(', '))
+    elif action == 'Removed tag':
+        # We need to re-add the removed tags
+        issue['tags'].union(t[1:-1] for t in tags.split(', '))
     else:
         raise FogbugzExportError(issue, action, tags)
 
@@ -186,6 +187,26 @@ handlers = [(re.compile(regex), handler) for regex, handler in
         ("Removed subcase.*", lambda issue:None),
         ]
 
+def _will_overwrite_changes(previous, current, next):
+    """Check to see if there are any changes in 'next' that will overwrite those in 'current'."""
+    for name, next_value in next.items():
+        if name == 'attachments':
+            # Attachments don't overwrite each other...
+            continue
+        previous_value = previous.get(name, None)
+        if next_value != previous_value:
+            # We have found a change between the previous and the next
+            current_value = current.get(name, None)
+            if current_value != previous_value and current_value != next_value:
+                # There is a different change between previous and the current
+                return True
+    return False
+
+def _has_changes(current, next):
+    return _will_overwrite_changes({}, current, next)
+
+def _is_different_timestamp(current, next):
+    return 'dt' in current and current['dt'] != next['dt']
 
 def _changes(issue, events):
     from xml.etree.ElementTree import tostring
@@ -194,13 +215,10 @@ def _changes(issue, events):
     # walk backwards recreating history.
     events.sort(key=lambda e:e.find('dt').text, reverse=True)
 
+    previous = {}
+    issue['attachments'] = []
+    current = copy.deepcopy(issue)
     for event in events:
-        if 'dt' in issue and issue['dt'] != event.find('dt').text:
-            yield issue
-            issue = copy.deepcopy(issue)
-            if 'sEvent' in issue:
-                del issue['sEvent']
-
         assigned_to = issue['ixPersonAssignedTo']
         _update(issue, event, ['dt', 'ixPerson', 'ixPersonAssignedTo'])
         if issue['ixPersonAssignedTo'] == '0':
@@ -210,10 +228,13 @@ def _changes(issue, events):
         msg = event.find('s')
         if msg is not None and msg.text is not None:
             issue['sEvent'] = msg.text
-        issue['attachments'] = list(
+        issue['attachments'].extend(
                 (a.find('sFileName').text, a.find('sURL').text)
                 for a in event.findall('rgAttachments/attachment'))
 
+        if event.find('sVerb').text == 'Closed':
+            # We don't get status notifications for this change.
+            issue['sStatus'] = 'Resolved'
         change = event.find('sChanges').text
         if change:
             lines = [l.strip() for l in change.splitlines()]
@@ -225,6 +246,25 @@ def _changes(issue, events):
                         break
                 else:
                     raise FogbugzExportError(("Failed to find handler for '%s' in issue %s!" % (line, issue)).encode('ascii', 'ignore'))
+
+        if _is_different_timestamp(current, issue) or _will_overwrite_changes(previous, current, issue):
+            # This event is enough to trigger a different changeset; report
+            # the state as a change that took place at this time.
+            current['dt'] = issue['dt']
+            current['ixPerson'] = issue['ixPerson']
+            if _has_changes(current, issue):
+                yield current
+
+            # Remove any attachments from the current issue we just reported,
+            # as the won't be present in the previous change.
+            uploads = [filename for filename, url in current['attachments']]
+            issue['attachments'] = [(filename, url)
+                    for filename, url in issue['attachments']
+                    if filename not in uploads]
+            previous = current
+        current = issue
+        issue = copy.deepcopy(issue)
+
     yield issue
 
 def _issues(source, search):
@@ -240,26 +280,16 @@ def _issues(source, search):
         issue['tags'] = set(t.text for t in case.findall('tags/tag'))
 
         changes = []
-        print issue
         for change in _changes(issue, case.findall('events/event')):
-            if not changes or changes[-1]['dt'] != change['dt']:
-                print change
-                changes.append(change)
-            else:
-                # This is a change with the same timestamp; fogbugz reports
-                # each part of a signle change separately. We ignore these,
-                # and only report the change when we get a new timestamp.
-                print 'skipping change...'
-                pass
+            changes.append(change)
         yield changes
 
 def _get_commands(source, users, projects, search):
     """Returns a list of (cmd, params, files) tuples."""
     for issue in _issues(source, search):
         cmd = None
-        issue.sort(key=lambda c:c['dt'])
+        issue.reverse()
         for change in issue:
-            print 'got change:', change
             status = change.pop('sStatus')
             if cmd is None:
                 cmd = 'new'
@@ -287,7 +317,7 @@ def migrate(source, dest, users, projects, search):
 
     ixBugLookup = {}
     for i, (cmd, params, files) in enumerate(changes):
-        logging.info('Migrating change %i of %i', i, len(changes))
+        logging.info('Migrating change %i of %i', i + 1, len(changes))
         params['ixPersonEditedBy'] = users.get_ixperson(params.pop('ixPerson'))
         params['ixProject'] = projects.get_ixproject(params.pop('sProject'))
         parentBug = params.pop('ixBugParent')
