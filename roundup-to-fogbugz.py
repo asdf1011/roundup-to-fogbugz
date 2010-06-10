@@ -134,7 +134,7 @@ class FogbugzUsers:
                     self._default_user_id = user.id
                     break
             else:
-                sys.exit("Unable to find user name '%s' to be default user!" % defaultUserName)
+                sys.exit("Unable to find user name '%s' to be default user! Users are:\n%s" % (defaultUserName, [u.realname for u in users]))
 
     def get_ixperson(self, roundupId):
         if roundupId is None:
@@ -213,8 +213,8 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
                 for id in issue.files if id not in existing_files]
         removed_attachments = [id for id in existing_files if id not in issue.files]
         if removed_attachments:
-            print "Note: not removing attachment %s from %s as this isn't " \
-                "supported by the fogbugz api." % (removed_attachments, issue)
+            logging.info("Note: not removing attachment %s from %s as this isn't " \
+                "supported by the fogbugz api.", removed_attachments, issue)
         existing_files = [id for id in issue.files]
         response = connection.post(cmd, params, files, 'case')
         if ixbug is None:
@@ -279,7 +279,9 @@ def main():
             "create placeholder issues to keep the roundup to fogbugz ids "
             "syncronised. This flag will disable the creation of placeholder issues.",
             action='store_true')
+    parser.add_option('--verbose', help='Verbose logging.', action='store_true')
     options, args = parser.parse_args()
+    logging.basicConfig(level=(logging.DEBUG if options.verbose else logging.INFO))
     if len(args) != 1:
         sys.exit("Missing roundup export directory argument! See '%s -h' for more info." % sys.argv[0])
     directory = args[0]
@@ -316,13 +318,13 @@ def main():
     for issue in issues:
         if not options.disable_placeholder_bugs:
             while int(issue.id) > i:
-                print 'Creating dummy bug to skip issue %i...' % i
+                logging.info('Creating placeholder bug to skip issue %i...', i)
                 _create_placeholder_bug(project_lookup, users, connection)
                 i += 1
             assert int(issue.id) == i, 'Expected issue with id %i, got %s' % (i, issue.id)
             i = int(issue.id) + 1
 
-        print 'uploading issue %s of %s...' % (issue.id, issues[-1].id)
+        logging.info('uploading issue %s of %s...', issue.id, issues[-1].id)
         changes = list(history(issue, journal))
         changes.reverse()
         fogbugz_issue_upload(changes, users, message_lookup,

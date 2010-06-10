@@ -1,6 +1,8 @@
 
 import httplib
+import logging
 import random
+import socket
 import string
 from StringIO import StringIO
 import sys
@@ -10,38 +12,44 @@ from xml.etree import ElementTree
 from xml.parsers.expat import ExpatError
 
 class FogbugzConnection:
-    def __init__(self, hostaddress=None):
+    def __init__(self, hostaddress=None, name=None):
         self._connection = None
+        self._host_address = hostaddress
+        self._username = None
+        self._password = None
+        self._name = name or 'fogbugz'
         if hostaddress is None:
             # Override the post with a test implementation.
-            print 'IMPORTANT: Fogbugz server not specifed! Printing issues to stdout.'
+            logging.info('IMPORTANT: Fogbugz server not specifed! Printing issues to stdout.')
             self._post = self._test_post
             self._root_path = 'test://server/'
-            username = None
-            password = None
+            self._server = None
         else:
-            server = urlparse.urlparse(hostaddress)
-            username = server.username
-            password = server.password
-            while not username:
-                username = raw_input('Fogbugz username: ')
-            while not password:
-                password = getpass.getpass('Enter Fogbugz admin password:')
+            self._server = urlparse.urlparse(hostaddress)
+            self._username = self._server.username
+            self._password = self._server.password
+            while not self._username:
+                self._username = raw_input('Fogbugz username: ')
+            while not self._password:
+                self._password = getpass.getpass('Enter Fogbugz admin password:')
+        self._reconnect()
 
-            if not server.scheme or server.scheme == 'http':
-                self.connection = httplib.HTTPConnection(server.hostname, server.port)
-            elif server.scheme == 'https':
-                self.connection = httplib.HTTPSConnection(server.hostname, server.port)
+    def _reconnect(self):
+        if self._server is not None:
+            if not self._server.scheme or self._server.scheme == 'http':
+                self.connection = httplib.HTTPConnection(self._server.hostname, self._server.port)
+            elif self._server.scheme == 'https':
+                self.connection = httplib.HTTPSConnection(self._server.hostname, self._server.port)
             else:
-                sys.exit("Unknown server scheme '%s'!" % server.scheme)
+                sys.exit("Unknown server scheme '%s'!" % self._server.scheme)
 
             # Request the 'live' url
-            self._root_path = server.path
+            self._root_path = self._server.path
             self.connection.request('GET', self._root_path + '/api.xml')
             self._http_path = '/%s' % self._get_element(self._get_response(), 'url').text
 
         self._token = None
-        self._token = self.post('logon', {'email':username, 'password':password}, element='token').text
+        self._token = self.post('logon', {'email':self._username, 'password':self._password}, element='token').text
 
     def _test_post(self, args, files=[]):
         cmd = args['cmd']
@@ -55,6 +63,10 @@ class FogbugzConnection:
             return '<response><case ixBug="%i" /></response>' % random.randint(0, 1000)
         elif cmd in ['edit', 'close', 'resolve', 'reactivate']:
             return '<response><case ixBug="1234" /></response>'
+        elif cmd == 'listPeople':
+            return '<response />'
+        elif cmd == 'listProjects':
+            return '<response />'
         else:
             raise Exception('%s not handled in test...' % cmd)
 
@@ -76,24 +88,29 @@ class FogbugzConnection:
         if files:
             args['nFileCount'] = len(files)
         args['cmd'] = cmd
+
+        # Log a debug message to show what is going on...
+        temp = list(args.items())
+        temp.sort()
+        logging.debug('%s - %s %s', self._name, temp, [filename for filename, contents in files])
+
         xml = self._post(args, files)
         return self._get_element(xml, element)
 
     def get_attachment(self, path):
         url = self._root_path + path + '&token=' + self._token
-        print 'Asking for attachment at', url
+        logging.info('Asking for attachment at %s', url)
         if self._post is not self._test_post:
             self.connection.request('GET', url)
             return self._get_response()
         else:
-            print 'Asked for attachment %s' % url
             return ''
 
     def _get_element(self, xml, element):
         try:
             tree = ElementTree.parse(StringIO(xml)).getroot()
         except ExpatError, ex:
-            print xml
+            logging.debug('%s', xml)
             sys.exit(str(ex))
         if tree.find('error') is not None:
             sys.exit(xml)
@@ -111,12 +128,20 @@ class FogbugzConnection:
 
     def _post_multipart(self, host, selector, fields, files):
         content_type, body = self._encode_multipart_formdata(fields, files)
-        self.connection.putrequest('POST', selector)
-        self.connection.putheader('content-type', content_type)
-        self.connection.putheader('content-length', len(body))
-        self.connection.endheaders()
-        self.connection.send(body)
-        return self._get_response()
+        while 1:
+            try:
+                self.connection.putrequest('POST', selector)
+                self.connection.putheader('content-type', content_type)
+                self.connection.putheader('content-length', len(body))
+                self.connection.endheaders()
+                self.connection.send(body)
+                return self._get_response()
+            except socket.error, ex:
+                logging.error('Socket error (%s); logging in again...', ex)
+                self._reconnect()
+            except httplib.HTTPException, ex:
+                logging.error('Http error (%s); logging in again...', ex)
+                self._reconnect()
 
     def _encode_multipart_formdata(self, fields, files):
         boundary = '----------' + ''.join(
