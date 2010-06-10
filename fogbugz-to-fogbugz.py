@@ -49,11 +49,17 @@ def migrate(source, dest, users, projects, search):
     # We load all of the changes, and insert them according to timestamp. This
     # ensures the parent bugs are created before the children.
     changes = list(_get_commands(source, users, projects, search))
-    changes.sort(key=lambda change:change[1]['dt'])
+
+    # We sort by timestamp first, as we want to replay the events in order (to
+    # handle dependencies between the bugs), but then by bug id, as we want
+    # the lower ixBugs before the higher ixBugs when they have the same
+    # timestamp. This is necessary because fogbugz will create parents & children
+    # at the same timestamp...
+    changes.sort(key=lambda change:(change[1]['dt'], int(change[1]['ixBug'])))
 
     ixBugLookup = {}
     for i, (cmd, params, files) in enumerate(changes):
-        logging.info('Migrating change %i of %i', i + 1, len(changes))
+        logging.info('Migrating change %i of %i (bug %s at %s)', i + 1, len(changes), params['ixBug'], params['dt'])
         params['ixPersonEditedBy'] = users.get_ixperson(params.pop('ixPerson'))
         params['ixProject'] = projects.get_ixproject(params.pop('sProject'))
         parentBug = params.pop('ixBugParent')

@@ -168,6 +168,7 @@ handlers = [(re.compile(regex), handler) for regex, handler in
         # Not necessary; just tracking parents is enough.
         ("Added subcase.*", lambda issue:None),
         ("Removed subcase.*", lambda issue:None),
+        ("Created subcase.*", lambda issue:None),
         ]
 
 def _will_overwrite_changes(previous, current, next):
