@@ -105,15 +105,33 @@ projects and destination projects.
 Tips
 ====
 
-* It is highly likely that you will have to restart the import several times
-(for example, if you need to increase the maximum file size in fogbugz). To
-reset fogbugz to a pristine state, run (for mysql);
+* You may have to run the import several times to correct issues (for example,
+  if you need to increase the maximum file size in fogbugz); it is very useful
+  to be able to quickly reset the database to a useable but mostly clean state
+  for testing. To remove all users, bugs, etc, run;
 
-  DROP DATABASE fogbugz;
-  CREATE DATABASE fogbugz;
-  use fogbugz;
-  create table Version (ixVersion int);
-  insert into Version values (0);
+      DELETE FROM Attachment;
+      DELETE FROM BugEvent;
+      DELETE FROM BugView;
+      DELETE FROM BugRelation;
+      DELETE FROM BugRelation;
+      DELETE FROM Duplicates;
+      DELETE FROM Scout;
+      DELETE FROM TagAssociation;
+      DELETE FROM Bug;
+      DELETE FROM Project;
+      DELETE FROM Person WHERE ixPerson != 2;
 
-Then load the web interface to let it re-run the installation.
+  The administrator account will still be present, and all the bug ids will not
+  restart from 1, but it will be clean enough allow you to re-run the import.
+
+* To fully reset the database to a pristine state, run (for mysql);
+
+      DROP DATABASE fogbugz;
+      CREATE DATABASE fogbugz;
+      use fogbugz;
+      create table Version (ixVersion int);
+      insert into Version values (0);
+
+  Then load the web interface to let it re-run the installation.
 
