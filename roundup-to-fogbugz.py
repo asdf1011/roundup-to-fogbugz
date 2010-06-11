@@ -284,7 +284,7 @@ def main():
         # There isn't an explicit fogbugz server
         connection = MockConnection()
     elif len(args) == 2:
-        connection = Connection(options.fogbugz_server)
+        connection = Connection(args[1])
     else:
         sys.exit("Too many arguments! See '%s -h' for more info." % sys.argv[0])
     directory = args[0]
