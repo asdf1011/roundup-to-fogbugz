@@ -60,7 +60,11 @@ def migrate(source, dest, users, projects, search):
     ixBugLookup = {}
     for i, (cmd, params, files) in enumerate(changes):
         logging.info('Migrating change %i of %i (bug %s at %s)', i + 1, len(changes), params['ixBug'], params['dt'])
-        params['ixPersonEditedBy'] = users.get_ixperson(params.pop('ixPerson'))
+        editor = params.pop('ixPerson')
+        if editor != '-1':
+            # The '-1' user is the email user, but we can't import that (as
+            # fogbugz will complain that 'Person #-1 does not exist.'.
+            params['ixPersonEditedBy'] = users.get_ixperson(editor)
         params['ixProject'] = projects.get_ixproject(params.pop('sProject'))
         parentBug = params.pop('ixBugParent')
         if parentBug != '0':
