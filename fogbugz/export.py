@@ -208,7 +208,7 @@ def _has_changes(current, next):
     return _will_overwrite_changes({}, current, next)
 
 def _is_different_timestamp(current, next):
-    return 'dt' in current and current['dt'] != next['dt']
+    return current.get('dt') != next['dt']
 
 def _changes(issue, events):
     from xml.etree.ElementTree import tostring
