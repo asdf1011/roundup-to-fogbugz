@@ -65,6 +65,11 @@ def migrate(source, dest, users, projects, search):
             # The '-1' user is the email user, but we can't import that (as
             # fogbugz will complain that 'Person #-1 does not exist.'.
             params['ixPersonEditedBy'] = users.get_ixperson(editor)
+        assigned_to = params.pop('ixPersonAssignedTo')
+        if assigned_to != '1':
+            # The '1' user appears to be an internal fogbugz user that is
+            # assigned closed bugs.
+            params['ixPersonAssignedTo'] = users.get_ixperson(assigned_to)
         params['ixProject'] = projects.get_ixproject(params.pop('sProject'))
         params['tags'] = ','.join(params.pop('tags'))
         parentBug = params.pop('ixBugParent')
