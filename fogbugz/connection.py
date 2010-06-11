@@ -142,7 +142,7 @@ class Connection(BaseConnection):
             L.append(value)
         L.append('--' + boundary + '--')
         L.append('')
-        body = CRLF.join(str(l) for l in L)
+        body = CRLF.join(str(l) if not isinstance(l, unicode) else l.encode('utf8') for l in L)
         content_type = 'multipart/form-data; boundary=%s' % boundary
         return content_type, body
 
