@@ -71,7 +71,7 @@ def migrate(source, dest, users, projects, search):
             # assigned closed bugs.
             params['ixPersonAssignedTo'] = users.get_ixperson(assigned_to)
         params['ixProject'] = projects.get_ixproject(params.pop('sProject'))
-        params['tags'] = ','.join(params.pop('tags'))
+        params['sTags'] = ','.join(params.pop('tags'))
         parentBug = params.pop('ixBugParent')
         if parentBug != '0':
             logging.debug('setting parent of %s to %s', params['ixBug'], parentBug)
