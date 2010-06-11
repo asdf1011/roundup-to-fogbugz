@@ -195,16 +195,22 @@ def _is_different_timestamp(current, next):
 def _changes(issue, events):
     from xml.etree.ElementTree import tostring
     timestamp = None
-    # We need to sort the events in reverse chronological order, so we can
-    # walk backwards recreating history.
-    events.sort(key=lambda e:e.find('dt').text, reverse=True)
+
+    # Fogbugz provides them to events in chronological order; we need to sort
+    # the events in reverse chronological order, so we can walk backwards
+    # recreating history.
+    events.reverse()
 
     previous = {}
     issue['attachments'] = []
     current = copy.deepcopy(issue)
     for event in events:
+        # As we are walking back in time, we are already in the state as
+        # described in event. We get the timestamp and person who put us
+        # in this state, then undo the changes described in event.
         assigned_to = issue['ixPersonAssignedTo']
         _update(issue, event, ['dt', 'ixPerson', 'ixPersonAssignedTo'])
+
         if issue['ixPersonAssignedTo'] == '0':
             # This seems to be a bug in the fogbugz export (it incorrectly sets
             # the 'assigned to' back to zero in later events).
@@ -232,8 +238,10 @@ def _changes(issue, events):
                     raise ExportError(("Failed to find handler for '%s' in issue %s!" % (line, issue)).encode('ascii', 'ignore'))
 
         if _is_different_timestamp(current, issue) or _will_overwrite_changes(previous, current, issue):
-            # This event is enough to trigger a different changeset; report
-            # the state as a change that took place at this time.
+            # We have undone the changes as described in the event, and they
+            # are enough for us to report the change. We report the state we
+            # were in before undoing the change at the timestamp of the
+            # current event.
             current['dt'] = issue['dt']
             current['ixPerson'] = issue['ixPerson']
             if _has_changes(current, issue):
