@@ -1,6 +1,9 @@
 
-Convert a roundup issue database to a fogbugz database
-======================================================
+Roundup to Fogbugz migration
+============================
+
+Overview
+--------
 
 This program will;
 
@@ -28,7 +31,7 @@ It will not;
 
 
 Instructions
-============
+------------
 
 Export the roundup database using roundup-admin. eg:
 
@@ -47,6 +50,58 @@ like to import it into fogbugz, run
 replacing the fogbugz server with the current url.
 
 
+Fogbugz to Fogbugz migration
+============================
+
+Overview
+--------
+
+This script will export from the Fogbugz issue tracker using the api.xml
+interface, and insert the issues into the new tracker in the same fashion.
+
+It will migrate the full history for;
+
+* All messages
+* All users (that are used)
+* Status changes
+* Parent / child relationships
+* Bug owner
+* Bug assignment
+* Priority
+* Tags
+* Projects
+
+It will not migrate;
+
+* Milestones
+* Time estimates
+* Email issues (it will migrate them, but they message will be text of the
+  email message, and you won't be able to reply)
+
+
+Instructions
+------------
+
+Check that it can export the source issues from the source tracker by running
+ 
+  ./fogbugz-to-fogbugz.py https://username:password@someaccount.fogbugz.com/
+
+Repeat the export, sending to the target tracker by running
+
+  ./fogbugz-to-fogbugz.py https://username:password@someaccount.fogbugz.com/  http://username:password@localserver/
+
+If you only want to export certain issues, use the '--search' paramter. This
+will limit the migrated issues to those listed.
+
+If you want to map a source user to a target user, you can use the
+'--user "source user:destination user' parameter, which will the destination
+database's 'destination user' account whenever a change was made by
+'source user' in the source database.
+
+In a simlar fashion, use the '--project' parameter to map between source
+projects and destination projects.
+
+
 Tips
 ====
 
@@ -61,3 +116,4 @@ reset fogbugz to a pristine state, run (for mysql);
   insert into Version values (0);
 
 Then load the web interface to let it re-run the installation.
+
