@@ -12,7 +12,7 @@ import sys
 
 from fogbugz.connection import Connection, MockConnection
 
-doc = '''%s [options] <roundup export directory>
+doc = '''%s [options] <roundup export directory> [fogbugz server]
 Import a roundup issue archive into a fogbugz database.''' % sys.argv[0]
 
 def load_class(dir, name):
@@ -269,11 +269,6 @@ def main():
             action='append')
     parser.add_option('--default-project', help="Set the default project for all "
             "issues that don't have a keyword specified in '--map'.", metavar="PROJECT")
-    parser.add_option('--fogbugz-server', help="Set the fogbugz server. eg: "
-            "'http://username:password@127.0.0.1:7006/fogbugz/'. If not "
-            "specified the issues will be printed to stdout, and not imported "
-            "to fogbugz. If the username and password is not specified, the "
-            "user will be prompted to enter it.", metavar="ADDRESS")
     parser.add_option('--default-user', help="Set the roundup user who will be "
             "set as the owner of all projects.", metavar="REAL_NAME")
     parser.add_option('--disable-placeholder-bugs', help="By default the tool will "
@@ -283,14 +278,16 @@ def main():
     parser.add_option('--verbose', help='Verbose logging.', action='store_true')
     options, args = parser.parse_args()
     logging.basicConfig(level=(logging.DEBUG if options.verbose else logging.INFO))
-    if len(args) != 1:
+    if len(args) < 1:
         sys.exit("Missing roundup export directory argument! See '%s -h' for more info." % sys.argv[0])
-    directory = args[0]
-
-    if options.fogbugz_server:
+    elif len(args) == 1:
+        # There isn't an explicit fogbugz server
+        connection = MockConnection()
+    elif len(args) == 2:
         connection = Connection(options.fogbugz_server)
     else:
-        connection = MockConnection()
+        sys.exit("Too many arguments! See '%s -h' for more info." % sys.argv[0])
+    directory = args[0]
 
     # Load the support classes
     roundupUsers = list(load_class(directory, 'user'))
