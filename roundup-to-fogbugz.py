@@ -183,11 +183,11 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
     """Upload issue changes to fogbugz."""
     roundup_priority = dict((name, id) for (id, name) in priority_lookup.items())
     fogbugz_priority = {
-            'critical' : 1,
-            'urgent' : 2,
-            'bug' : 3,
-            'feature' : 4,
-            'wish' : 5,
+            'critical' : (1, 'Bug'),
+            'urgent' : (2, 'Bug'),
+            'bug' : (3, 'Bug'),
+            'feature' : (4, 'Feature'),
+            'wish' : (5, 'Feature'),
             }
     ixbug = None
     existing_messages = []
@@ -217,7 +217,7 @@ def fogbugz_issue_upload(issue_history, users, message_lookup,
             params['ixPersonAssignedTo'] = users.get_ixperson(issue.assignedto)
         params['ixPersonEditedBy'] = users.get_ixperson(issue.actor)
         params['dt'] = mktime(issue.activity)
-        params['ixPriority'] = fogbugz_priority[priority_lookup[issue.priority]]
+        params['ixPriority'], params['sCategory'] = fogbugz_priority[priority_lookup[issue.priority]]
 
         # Check for new messages
         message_ids = [id for id in issue.messages if id not in existing_messages]
