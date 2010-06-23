@@ -211,9 +211,6 @@ def _is_different_timestamp(current, next):
     return current.get('dt') != next['dt']
 
 def _changes(issue, events):
-    from xml.etree.ElementTree import tostring
-    timestamp = None
-
     # Fogbugz provides them to events in chronological order; we need to sort
     # the events in reverse chronological order, so we can walk backwards
     # recreating history.
