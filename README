@@ -27,6 +27,7 @@ It will not;
 * Import passwords.
 * Keep the nosy list (this wasn't required for us, but it'll be easy to add).
 * Remove messages from issues (supported by roundup, but not by fogbugz).
+* Remove attachments from issues (supported by roundup, but not by fogbugz).
 * Import non-default classes (should be easy to customise though).
 
 
