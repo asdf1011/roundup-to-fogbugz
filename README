@@ -103,6 +103,15 @@ In a simlar fashion, use the '--project' parameter to map between source
 projects and destination projects.
 
 
+Known bugs
+----------
+
+If a user has been deleted, the fogbugz export will complain about 
+
+  fogbugz.export.ExportError: Failed to find source ixPerson with id 2!
+
+Unfortunately there is no way to query deleted users with the api.xml.
+
 Tips
 ====
 
