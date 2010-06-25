@@ -29,7 +29,7 @@ def _update(issue, event, names):
     for name in names:
         issue[name] = event.find(name).text
 
-def _dict_from_element(case, names):
+def dict_from_element(case, names):
     result = {}
     _update(result, case, names)
     return result
@@ -167,7 +167,7 @@ def get_issues(source, search):
     search_results = source.post('search', params)
 
     for case in search_results.findall('cases/case'):
-        issue = _dict_from_element(case, columns)
+        issue = dict_from_element(case, columns)
         issue['tags'] = set(t.text for t in case.findall('tags/tag'))
 
         changes = []

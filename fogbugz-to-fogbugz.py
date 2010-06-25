@@ -24,7 +24,7 @@ from optparse import OptionParser
 import sys
 
 from fogbugz.connection import Connection, MockConnection
-from fogbugz.export import get_issues, ExportError
+from fogbugz.export import get_issues, ExportError, dict_from_element
 
 doc = '''%s [options] <source_url> [dest_url]
 Migrate from a fogbugz database to another fogbugz database.
@@ -55,7 +55,7 @@ class Mapping:
 
         # Map the user specified source users to the destination users
         self._columns = [ix_name, name] + additional_columns
-        self._source_items = [_dict_from_element(e, self._columns)
+        self._source_items = [dict_from_element(e, self._columns)
                 for e in source.post(list_cmd, {}).findall(xml_search)]
 
         source_names = dict((p[name], p[ix_name])
@@ -144,7 +144,7 @@ class Projects(Mapping):
                     source_name = project.find('sProject').text
                     if name == source_name:
                         logging.info("Found project '%s'! Its ixProject is %s", name, ixProject)
-                        self._source_items.append(_dict_from_element(project, self._columns))
+                        self._source_items.append(dict_from_element(project, self._columns))
                         return self.get_ix(ixProject)
             raise ExportError('Unabled to find deleted source project!')
 
