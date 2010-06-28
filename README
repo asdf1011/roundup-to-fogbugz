@@ -106,11 +106,13 @@ projects and destination projects.
 Known bugs
 ----------
 
-If a user has been deleted, the fogbugz export will complain about 
-
-  fogbugz.export.ExportError: Failed to find source ixPerson with id 2!
-
-Unfortunately there is no way to query deleted users with the api.xml.
+* If a user has been deleted, the fogbugz export will complain about 
+  
+    fogbugz.export.ExportError: Failed to find source ixPerson with id 2!
+  
+  Unfortunately there is no way to query deleted users with the api.xml.
+* It doesn't correctly group changes; some of the historical changes may have
+  incorrect timestamps.
 
 Tips
 ====
